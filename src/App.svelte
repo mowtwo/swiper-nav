@@ -49,8 +49,6 @@
     syncActiveBar();
   });
 
-  let pageWrapperThis: HTMLDivElement = null;
-
   let inTouching = false;
 
   let pageTouchStartX = 0;
@@ -77,6 +75,30 @@
         touches: [{ pageX }],
       } = e;
       pageWrapperPageOffsetX = pageTouchStartX - pageX;
+      let p = pageWrapperPageOffsetX / middleScreen;
+      p = p > 1 ? 1 : p;
+      p = p < -1 ? -1 : p;
+      if (pageWrapperPageOffsetX > 0) {
+        if (activeIndex + 1 > 9) {
+          return;
+        }
+        const nextItem = tabItems[activeIndex + 1];
+        const item = tabItems[activeIndex];
+        const offsetLeft = nextItem.offsetLeft - item.offsetLeft;
+        const width = nextItem.offsetWidth - item.offsetWidth;
+        activeBarLeft = item.offsetLeft + offsetLeft * p;
+        activeBarWidth = item.offsetWidth + width * p;
+      } else if (pageWrapperPageOffsetX < 0) {
+        if (activeIndex - 1 < 0) {
+          return;
+        }
+        const lastItem = tabItems[activeIndex - 1];
+        const item = tabItems[activeIndex];
+        const offsetLeft = item.offsetLeft - lastItem.offsetLeft;
+        const width = item.offsetWidth - lastItem.offsetWidth;
+        activeBarLeft = item.offsetLeft + offsetLeft * p;
+        activeBarWidth = item.offsetWidth + width * p;
+      }
     }
   };
 
@@ -93,6 +115,7 @@
       if (finalOffsetX > 0) {
         if (activeIndex + 1 > 9) {
           pageWrapperPageOffsetX = 0;
+          syncActiveBarAndScrolling();
           return;
         }
         activeIndex += 1;
@@ -100,6 +123,7 @@
       } else {
         if (activeIndex - 1 < 0) {
           pageWrapperPageOffsetX = 0;
+          syncActiveBarAndScrolling();
           return;
         }
         activeIndex -= 1;
@@ -107,6 +131,7 @@
       }
       syncActiveBarAndScrolling();
     }
+    syncActiveBarAndScrolling();
     pageWrapperPageOffsetX = 0;
   };
 </script>
@@ -121,6 +146,7 @@
           class:active={i === activeIndex}
           on:click={() => {
             activeIndex = i;
+            pageWrapperPageX = i * window.innerWidth;
             syncActiveBarAndScrolling();
           }}
         >
@@ -135,6 +161,7 @@
       class="active-bar"
       style="left:{activeBarLeft}px;width:{activeBarWidth}px;"
       bind:this={activeBarThis}
+      class:transition={!inTouching}
     />
   </div>
   <div
@@ -145,7 +172,6 @@
   >
     <div
       class="wrapper"
-      bind:this={pageWrapperThis}
       style="left:{pageWrapperPageLeftStyle};"
       class:transition={!inTouching}
     >
@@ -195,7 +221,9 @@
         position: absolute;
         bottom: $padding-bottom;
         left: 0;
-        transition: all 0.2s;
+        &.transition {
+          transition: all 0.2s;
+        }
       }
       .wrapper {
         display: flex;
